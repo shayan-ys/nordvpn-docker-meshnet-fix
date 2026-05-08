@@ -15,6 +15,7 @@
 set -euo pipefail
 
 CONF=/etc/default/nordvpn-docker-meshnet-fix
+# shellcheck source=/dev/null
 [[ -r "$CONF" ]] && . "$CONF"
 
 DOCKER_SUBNET="${DOCKER_SUBNET:-172.18.0.0/16}"

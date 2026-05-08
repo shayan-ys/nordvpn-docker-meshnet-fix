@@ -1,0 +1,4 @@
+# Default to bash semantics; the shebangs declare bash explicitly anyway.
+shell=bash
+# We intentionally use `command -v iptables` not full path; allow it.
+disable=SC2310
