@@ -44,13 +44,11 @@ setup() {
 }
 
 @test "exits non-zero when iptables is missing" {
-  # Remove the mocked iptables from PATH so the script can't find it
-  local no_iptables_bin="$BATS_TEST_TMPDIR/no_iptables_bin"
-  mkdir -p "$no_iptables_bin"
-  # Rebuild PATH without the mock bin dir that setup_iptables_mock added
-  local safe_path
-  safe_path="$(echo "$PATH" | tr ':' '\n' | grep -v "$BATS_TEST_TMPDIR/bin" | tr '\n' ':')"
-  run env PATH="$safe_path" bash "$BATS_TEST_DIRNAME/../../nordvpn-docker-meshnet-fix.sh"
+  # PATH=/nonexistent guarantees `command -v iptables` finds nothing on any host
+  # (Ubuntu has /usr/sbin/iptables in default PATH, so just dropping the mock
+  # bin dir from PATH isn't enough). Use absolute /bin/bash to bypass PATH.
+  run /bin/bash -c 'PATH=/nonexistent exec /bin/bash "$1"' _ \
+    "$BATS_TEST_DIRNAME/../../nordvpn-docker-meshnet-fix.sh"
   [ "$status" -eq 2 ]
   [[ "$output" == *"iptables not found"* ]]
 }
