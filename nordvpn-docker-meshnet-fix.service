@@ -1,0 +1,10 @@
+[Unit]
+Description=Keep Docker-Meshnet iptables FORWARD rules above nordvpn DROP rules
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/nordvpn-docker-meshnet-fix.sh
+
+[Install]
+WantedBy=multi-user.target
