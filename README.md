@@ -45,7 +45,7 @@ script always deletes-then-reinserts at position 1.
 Requires `iptables`, `systemd`, and root.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/nordvpn-docker-meshnet-fix.git
+git clone https://github.com/shayanys/nordvpn-docker-meshnet-fix.git
 cd nordvpn-docker-meshnet-fix
 sudo ./install.sh
 ```
