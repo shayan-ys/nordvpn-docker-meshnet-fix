@@ -4,6 +4,8 @@ load test_helper
 
 setup() {
   setup_iptables_mock
+  # Default: nft mock with table present and no stale rules.
+  NFT_MODE=clean setup_nft_mock
 }
 
 @test "uses default subnets when no env or conf is set" {
@@ -57,4 +59,50 @@ setup() {
   # The script hardcodes CONF=/etc/default/...; for this test we wrap.
   # Skip if the script doesn't expose CONF override — current implementation does not.
   skip "CONF override not exposed; documenting expected behavior only"
+}
+
+# --- nftables branch -------------------------------------------------------
+
+@test "nft: inserts forward rule with marker comment when table exists" {
+  run run_script
+  [ "$status" -eq 0 ]
+  grep -q -- 'insert rule inet nordvpn forward' "$NFT_LOG"
+  grep -q -- 'ip saddr 172.18.0.0/16 ip daddr 100.64.0.0/10 accept' "$NFT_LOG"
+  grep -q -- 'comment docker-meshnet-fix' "$NFT_LOG"
+}
+
+@test "nft: probes for the inet nordvpn table before touching it" {
+  run run_script
+  [ "$status" -eq 0 ]
+  grep -q -- 'list table inet nordvpn' "$NFT_LOG"
+}
+
+@test "nft: deletes existing marker rule before re-inserting (handle reuse)" {
+  NFT_MODE=stale setup_nft_mock
+  run run_script
+  [ "$status" -eq 0 ]
+  grep -q -- 'delete rule inet nordvpn forward handle 99' "$NFT_LOG"
+  grep -q -- 'insert rule inet nordvpn forward' "$NFT_LOG"
+}
+
+@test "nft: skips gracefully if inet nordvpn table is absent" {
+  NFT_MODE=no_table setup_nft_mock
+  run run_script
+  [ "$status" -eq 0 ]
+  grep -q -- 'list table inet nordvpn' "$NFT_LOG"
+  ! grep -q -- 'insert rule' "$NFT_LOG"
+}
+
+@test "nft: skips gracefully if nft binary is missing" {
+  NFT_MODE=absent setup_nft_mock
+  run run_script
+  [ "$status" -eq 0 ]
+  # iptables work still happened.
+  grep -q -- '-I FORWARD 1' "$IPTABLES_LOG"
+}
+
+@test "nft: honors DOCKER_SUBNET / MESHNET_SUBNET overrides" {
+  DOCKER_SUBNET=10.20.0.0/16 MESHNET_SUBNET=100.65.0.0/16 run run_script
+  [ "$status" -eq 0 ]
+  grep -q -- 'ip saddr 10.20.0.0/16 ip daddr 100.65.0.0/16 accept' "$NFT_LOG"
 }
